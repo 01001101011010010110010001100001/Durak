@@ -214,6 +214,7 @@ def one_game(list_player,file_per):
         choice,file_temp,file_per = action_player(list_player,env_state,file_temp,file_per)
         env_state = environment(env_state,choice)
         # print(env_state)
+    state = env_to_player(env_state)
     for play in range(4):
         choice,file_temp[play],file_per = list_player[play](state,file_temp[play],file_per)
     return check_win(env_state),file_per
