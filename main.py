@@ -37,10 +37,22 @@ def reset():
 env_state = reset()
 env_state[263:]
 
+@jit(nopython=True)
+def check_win(env_state):
+    if np.max(env_state[263:]) == -1:
+        for player in range(4):
+            if np.sum(env_state[52*player:52*(player+1)]) == 0:
+                return player
+    return - 1
+
 def env_to_player(env_state):
     current_player = int(env_state[208]%4)
     hand = env_state[current_player*52:(current_player+1)*52]
     hand = np.append(hand,env_state[209:263])
+    remain = np.zeros(1)
+    if check_win(env_state) != -1:
+        remain[0] = -1
+    hand = np.append(hand,remain)
     return hand
 state = env_to_player(env_state)
 # so la la bai danh, 53 la skip k danh nua
@@ -50,7 +62,7 @@ def get_list_action(state):
     if state[53] < 0:
         # dang cong
         # check xem da danh la nao chua
-        if np.sum(state[54:]) == 0:
+        if np.sum(state[54:106]) == 0:
             list_action = np.array([52])
             for act in range(52):
                 if state[act] == 1:
@@ -166,21 +178,17 @@ def environment(env_state,choice):
             return env_state
 environment(env_state,52)
 
-@jit(nopython=True)
-def check_win(env_state):
-    for player in range(4):
-        if np.sum(env_state[52*player:52*(player+1)]) == 0:
-            return player
-    return - 1
+
 
 
 @jit(nopython=True)
 def check_victory(state):
-    if np.sum(state[:52]) == 0:
-        return 1
-    for other in range(1,4):
-        if np.sum(state[52*other:52*(other+1)]) == 0:
-            return 0
+    if state[-1] == -1:
+        if np.sum(state[:52]) == 0:
+            return 1
+        for other in range(1,4):
+            if np.sum(state[52*other:52*(other+1)]) == 0:
+                return 0
     return -1
 
 @jit(nopython=True)
@@ -194,7 +202,6 @@ def player_random0(state,file_temp,file_per):
     return a[b],file_temp,file_per
 
 def action_player(list_player,env_state,file_temp,file_per):
-    state = env_to_player(env_state)
     play = int((env_state[208]+1)%4)
     if env_state[210] == -1:
         play = int(env_state[208]%4)
@@ -202,6 +209,12 @@ def action_player(list_player,env_state,file_temp,file_per):
         play = int((env_state[208]+2)%4)
     if env_state[210] == -3:
         play = int((env_state[208]+3)%4)
+    hand = env_state[play*52:(play+1)*52]
+    hand = np.append(hand,env_state[209:263])
+    remain = np.zeros(1)
+    if check_win(env_state) != -1:
+        remain[0] = -1
+    state = np.append(hand,remain)
     choice,file_temp[play],file_per = list_player[play](state,file_temp[play],file_per)
     return choice,file_temp,file_per
 
@@ -213,10 +226,11 @@ def one_game(list_player,file_per):
         # print(list_player,env_state,file_temp,file_per)
         choice,file_temp,file_per = action_player(list_player,env_state,file_temp,file_per)
         env_state = environment(env_state,choice)
-        # print(env_state)
-    state = env_to_player(env_state)
-    for play in range(4):
-        choice,file_temp[play],file_per = list_player[play](state,file_temp[play],file_per)
+    env_state[210] = -1
+    for play in range(4): 
+        current_player = int((env_state[208]+play)%4)
+        choice,file_temp[current_player],file_per = action_player(list_player,env_state,file_temp,file_per)
+        env_state[208] += 1
     return check_win(env_state),file_per
 
 def normal_main(list_player,times,print_mode):
@@ -230,5 +244,6 @@ def normal_main(list_player,times,print_mode):
         win,file_per = one_game(shuffled_players,file_per)
         # print(turn)
         real_winner = list_randomed[win]
+        # print(real_winner)
         count[real_winner] += 1
     return count,file_per
