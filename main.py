@@ -63,11 +63,11 @@ def get_list_action(state):
         # dang cong
         # check xem da danh la nao chua
         if np.sum(state[54:106]) == 0:
-            list_action = np.array([52])
+            list_action = []
             for act in range(52):
                 if state[act] == 1:
-                    list_action = np.append(list_action,act)
-            return list_action
+                    list_action.append(act)
+            return np.array(list_action)
         # neu da danh
         else:
             # check xem cac la da danh ra la so nao
@@ -134,6 +134,7 @@ def environment(env_state,choice):
                                     break
                 # them luot
                 env_state[208] += 1
+
                 return env_state
             else:
                 # neu chua phai nguoi cuoi, nhuong luot cho nguoi khac
@@ -141,9 +142,11 @@ def environment(env_state,choice):
                 return env_state
         # neu danh bai
         else:
+            # print(current_player,env_state[210],"tấn với lá",choice)
             env_state[210] = choice
             env_state[choice + current_player*52] = 0
             env_state[choice + 211] = 1
+            
             return env_state
     # khi la nguoi phong thu
     else:
@@ -151,6 +154,7 @@ def environment(env_state,choice):
         if choice == 52:
             # om bai
             env_state[(1+current_player)*52:(2+current_player)*52] += env_state[211:263]
+            env_state[(1+current_player)*52:(2+current_player)*52] = np.minimum(env_state[(1+current_player)*52:(2+current_player)*52],np.ones(52))
             # reset bai om
             env_state[211:263] = 0
             # reset bai chặn
@@ -229,7 +233,7 @@ def one_game(list_player,file_per):
     env_state[210] = -1
     for play in range(4): 
         current_player = int((env_state[208]+play)%4)
-        choice,file_temp[current_player],file_per = action_player(list_player,env_state,file_temp,file_per)
+        choice,a,file_per = action_player(list_player,env_state,file_temp,file_per)
         env_state[208] += 1
     return check_win(env_state),file_per
 
